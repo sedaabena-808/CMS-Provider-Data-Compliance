@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CMS Data Compliance Report — dde4a913</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,600;0,800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#eef1f2; --paper:#fff; --ink:#16232b; --muted:#5c6f78;
+    --rule:#ccd6da; --rule-strong:#9aabb2;
+    --pass:#1f6f5c; --advisory:#b07a16; --blocking:#9e2b25; --federal:#1b4965;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:"Public Sans",system-ui,sans-serif; font-size:15px; line-height:1.55;
+    font-variant-numeric:tabular-nums;
+  }
+  .sheet{max-width:1080px;margin:0 auto;background:var(--paper);
+         border-left:1px solid var(--rule);border-right:1px solid var(--rule);}
+  .pad{padding:0 40px}
+  @media(max-width:640px){.pad{padding:0 20px}}
+
+  header{border-bottom:3px solid var(--ink);padding-top:40px;padding-bottom:22px}
+  h1{font-family:"Source Serif 4",Georgia,serif;font-weight:600;
+     font-size:clamp(28px,4.4vw,42px);line-height:1.08;margin:0 0 10px;
+     letter-spacing:-.015em;max-width:20ch}
+  .standfirst{font-size:16px;color:var(--muted);max-width:64ch;margin:0 0 20px}
+  .runmeta{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:12.5px;color:var(--muted)}
+  .runmeta b{font-weight:600;color:var(--ink);font-weight:600}
+
+  /* Hero: every executed control as one tick, read left to right. */
+  .strip-block{padding-top:28px;padding-bottom:30px;border-bottom:1px solid var(--rule)}
+  .strip{display:flex;gap:2px;height:58px;align-items:flex-end;margin:18px 0 12px}
+  .tick{flex:1 1 0;min-width:2px;border-radius:1px 1px 0 0;
+        transition:opacity .12s ease}
+  .tick[data-o="pass"]{background:var(--pass);height:52%}
+  .tick[data-o="advisory"]{background:var(--advisory);height:74%}
+  .tick[data-o="blocking"]{background:var(--blocking);height:100%}
+  .tick:hover{opacity:.62}
+  .strip-caption{font-size:13px;color:var(--muted);max-width:70ch}
+  .legend{display:flex;gap:20px;flex-wrap:wrap;font-size:12.5px;margin-top:14px}
+  .legend span{display:flex;align-items:center;gap:7px}
+  .swatch{width:11px;height:11px;border-radius:2px;display:inline-block}
+
+  /* Verdict */
+  .verdict{display:grid;grid-template-columns:200px 1fr;gap:36px;
+           padding-top:30px;padding-bottom:30px;border-bottom:1px solid var(--rule)}
+  @media(max-width:720px){.verdict{grid-template-columns:1fr;gap:20px}}
+  .seal{border:2px solid var(--ink);padding:18px 12px 14px;text-align:center}
+  .seal .g{font-family:"Source Serif 4",serif;font-size:66px;line-height:.9;
+           font-weight:600;display:block}
+  .seal .s{font-size:20px;font-weight:600;display:block;margin-top:6px}
+  .seal .l{font-size:11.5px;color:var(--muted);margin-top:8px;display:block}
+  .facts{display:grid;grid-template-columns:repeat(3,1fr);
+         gap:1px;background:var(--rule);border:1px solid var(--rule)}
+  @media(max-width:520px){.facts{grid-template-columns:repeat(2,1fr)}}
+  .fact{background:var(--paper);padding:14px 16px}
+  .fact .n{font-size:26px;font-weight:800;line-height:1.1;letter-spacing:-.02em}
+  .fact .k{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .fact.bad .n{color:var(--blocking)}
+  .fact.warn .n{color:var(--advisory)}
+
+  h2{font-family:"Source Serif 4",serif;font-size:22px;font-weight:600;
+     margin:34px 0 4px;letter-spacing:-.01em}
+  .subhead{font-size:13.5px;color:var(--muted);margin:0 0 16px;max-width:70ch}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;font-weight:600;font-size:12.5px;color:var(--muted);
+     padding:0 10px 8px;border-bottom:1.5px solid var(--rule-strong);white-space:nowrap}
+  td{padding:11px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+  tbody tr td:first-child{border-left:4px solid transparent;padding-left:12px}
+  tr[data-sev="blocking"] td:first-child{border-left-color:var(--blocking)}
+  tr[data-sev="advisory"] td:first-child{border-left-color:var(--advisory)}
+  tr[data-sev="pass"] td:first-child{border-left-color:var(--pass)}
+  .num{text-align:right}
+  .grade{font-weight:800}
+  .grade.A,.grade.B{color:var(--pass)} .grade.C{color:var(--advisory)}
+  .grade.D,.grade.F{color:var(--blocking)}
+  .dim{color:var(--muted)}
+  .hash{font-size:11.5px;color:var(--muted);word-break:break-all}
+  .pill{display:inline-block;padding:1px 8px;border:1px solid var(--rule-strong);
+        border-radius:10px;font-size:11.5px;color:var(--muted)}
+
+  .exception{border-top:1px solid var(--rule);padding:14px 0 14px 14px;
+             border-left:4px solid var(--advisory)}
+  .exception.blocking{border-left-color:var(--blocking)}
+  .exception .c{font-weight:600;font-size:14px}
+  .exception .d{font-size:13.5px;color:var(--muted);margin-top:2px}
+  .clean{border:1px solid var(--rule);border-left:4px solid var(--pass);
+         padding:16px 18px;font-size:14px}
+
+  .attest{background:#f7f9f9;border:1px solid var(--rule);padding:18px 20px;
+          font-size:13.5px;margin:20px 0 0;max-width:74ch}
+  footer{padding-top:26px;padding-bottom:46px;margin-top:34px;
+         border-top:3px solid var(--ink);font-size:12.5px;color:var(--muted)}
+  @media print{
+    body{background:#fff} .sheet{border:0;max-width:none}
+    .tick:hover{opacity:1} h2{break-after:avoid} tr{break-inside:avoid}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="pad">
+    <h1>CMS provider data compliance report</h1>
+    <p class="standfirst">Automated extraction, control testing, and lineage capture across
+      11 public-use CMS datasets. Every figure below is
+      reproducible from the run manifest committed alongside this report.</p>
+    <div class="runmeta">
+      <span>Run <b>dde4a913</b></span>
+      <span>Executed <b>2026-09-14 14:08:44 UTC</b></span>
+      <span>Duration <b>3m 32s</b></span>
+      <span>Source <b>CMS Provider Data Catalog</b></span>
+    </div>
+  </header>
+
+  <section class="strip-block pad">
+    <h2 style="margin-top:0">Control execution</h2>
+    <p class="subhead">Each tick is one control test. Height and colour encode outcome, so a
+      single glance shows whether exceptions are isolated or systemic.</p>
+    <div class="strip" role="img"
+         aria-label="110 control tests: 110 passed, 0 advisory exceptions, 0 blocking failures">
+      <div class="tick" data-o="pass" title="hospital_general — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="hospital_general — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="hospital_general — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="hospital_general — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="hospital_general — TYPE-01 numeric_parse: no numeric measure column on this dataset"></div><div class="tick" data-o="pass" title="hospital_general — VOL-01 row_count_drift: 5,419 -> 5,419 rows (0.0% change)"></div><div class="tick" data-o="pass" title="hospital_general — FRESH-01 upstream_within_cadence: CMS last modified 2026-07-22 (54d ago); expected within 120d"></div><div class="tick" data-o="pass" title="hospital_general — NULL-01 null_rate[facility_id]: facility_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="hospital_general — NULL-01 null_rate[facility_name]: facility_name: 0.0% null/blank"></div><div class="tick" data-o="pass" title="hospital_general — NULL-01 null_rate[state]: state: 0.0% null/blank"></div><div class="tick" data-o="pass" title="hospital_general — NULL-01 null_rate[hospital_type]: hospital_type: 0.0% null/blank"></div><div class="tick" data-o="pass" title="hospital_general — NULL-01 null_rate[hospital_ownership]: hospital_ownership: 0.0% null/blank"></div><div class="tick" data-o="pass" title="hospital_general — NULL-01 null_rate[hospital_overall_rating]: hospital_overall_rating: 0.0% null/blank"></div><div class="tick" data-o="pass" title="timely_effective_care — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="timely_effective_care — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="timely_effective_care — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="timely_effective_care — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="timely_effective_care — TYPE-01 numeric_parse[score]: 39.0% of score values parse as numeric (remainder are CMS suppression/footnote codes)"></div><div class="tick" data-o="pass" title="timely_effective_care — VOL-01 row_count_drift: 138,084 -> 138,084 rows (0.0% change)"></div><div class="tick" data-o="pass" title="timely_effective_care — FRESH-01 upstream_within_cadence: CMS last modified 2026-07-22 (54d ago); expected within 120d"></div><div class="tick" data-o="pass" title="timely_effective_care — NULL-01 null_rate[facility_id]: facility_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="timely_effective_care — NULL-01 null_rate[measure_id]: measure_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="timely_effective_care — NULL-01 null_rate[score]: score: 0.0% null/blank"></div><div class="tick" data-o="pass" title="complications_deaths — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="complications_deaths — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="complications_deaths — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="complications_deaths — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="complications_deaths — TYPE-01 numeric_parse[score]: 54.7% of score values parse as numeric (remainder are CMS suppression/footnote codes)"></div><div class="tick" data-o="pass" title="complications_deaths — VOL-01 row_count_drift: 95,800 -> 95,800 rows (0.0% change)"></div><div class="tick" data-o="pass" title="complications_deaths — FRESH-01 upstream_within_cadence: CMS last modified 2026-07-22 (54d ago); expected within 120d"></div><div class="tick" data-o="pass" title="complications_deaths — NULL-01 null_rate[facility_id]: facility_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="complications_deaths — NULL-01 null_rate[measure_id]: measure_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="complications_deaths — NULL-01 null_rate[score]: score: 0.0% null/blank"></div><div class="tick" data-o="pass" title="hai — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="hai — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="hai — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="hai — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="hai — TYPE-01 numeric_parse[score]: 55.7% of score values parse as numeric (remainder are CMS suppression/footnote codes)"></div><div class="tick" data-o="pass" title="hai — VOL-01 row_count_drift: 172,440 -> 172,440 rows (0.0% change)"></div><div class="tick" data-o="pass" title="hai — FRESH-01 upstream_within_cadence: CMS last modified 2026-07-22 (54d ago); expected within 120d"></div><div class="tick" data-o="pass" title="hai — NULL-01 null_rate[facility_id]: facility_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="hai — NULL-01 null_rate[measure_id]: measure_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="hai — NULL-01 null_rate[score]: score: 0.0% null/blank"></div><div class="tick" data-o="pass" title="unplanned_visits — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="unplanned_visits — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="unplanned_visits — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="unplanned_visits — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="unplanned_visits — TYPE-01 numeric_parse[score]: 47.5% of score values parse as numeric (remainder are CMS suppression/footnote codes)"></div><div class="tick" data-o="pass" title="unplanned_visits — VOL-01 row_count_drift: 67,060 -> 67,060 rows (0.0% change)"></div><div class="tick" data-o="pass" title="unplanned_visits — FRESH-01 upstream_within_cadence: CMS last modified 2026-07-22 (54d ago); expected within 120d"></div><div class="tick" data-o="pass" title="unplanned_visits — NULL-01 null_rate[facility_id]: facility_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="unplanned_visits — NULL-01 null_rate[measure_id]: measure_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="unplanned_visits — NULL-01 null_rate[score]: score: 0.0% null/blank"></div><div class="tick" data-o="pass" title="hcahps — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="hcahps — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="hcahps — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="hcahps — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="hcahps — TYPE-01 numeric_parse: no numeric measure column on this dataset"></div><div class="tick" data-o="pass" title="hcahps — VOL-01 row_count_drift: 325,720 -> 325,720 rows (0.0% change)"></div><div class="tick" data-o="pass" title="hcahps — FRESH-01 upstream_within_cadence: CMS last modified 2026-07-22 (54d ago); expected within 120d"></div><div class="tick" data-o="pass" title="hcahps — NULL-01 null_rate[facility_id]: facility_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="hcahps — NULL-01 null_rate[hcahps_measure_id]: hcahps_measure_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="maternal_health — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="maternal_health — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="maternal_health — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="maternal_health — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="maternal_health — TYPE-01 numeric_parse: measure is categorical by design; numeric parse not applicable"></div><div class="tick" data-o="pass" title="maternal_health — VOL-01 row_count_drift: 17,936 -> 17,936 rows (0.0% change)"></div><div class="tick" data-o="pass" title="maternal_health — FRESH-01 upstream_within_cadence: CMS last modified 2026-07-22 (54d ago); expected within 180d"></div><div class="tick" data-o="pass" title="maternal_health — NULL-01 null_rate[facility_id]: facility_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="maternal_health — NULL-01 null_rate[measure_id]: measure_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="msbp — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="msbp — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="msbp — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="msbp — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="msbp — TYPE-01 numeric_parse[score]: 62.1% of score values parse as numeric (remainder are CMS suppression/footnote codes)"></div><div class="tick" data-o="pass" title="msbp — VOL-01 row_count_drift: 4,626 -> 4,626 rows (0.0% change)"></div><div class="tick" data-o="pass" title="msbp — FRESH-01 upstream_within_cadence: CMS last modified 2026-07-22 (54d ago); expected within 180d"></div><div class="tick" data-o="pass" title="msbp — NULL-01 null_rate[facility_id]: facility_id: 0.0% null/blank"></div><div class="tick" data-o="pass" title="nursing_home_providers — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="nursing_home_providers — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="nursing_home_providers — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="nursing_home_providers — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="nursing_home_providers — TYPE-01 numeric_parse: no numeric measure column on this dataset"></div><div class="tick" data-o="pass" title="nursing_home_providers — VOL-01 row_count_drift: 14,690 -> 14,690 rows (0.0% change)"></div><div class="tick" data-o="pass" title="nursing_home_providers — FRESH-01 upstream_within_cadence: CMS last modified 2026-08-01 (44d ago); expected within 45d"></div><div class="tick" data-o="pass" title="nursing_home_providers — FRESH-02 next_update_not_overdue: CMS scheduled next update 2026-09-30 — on schedule"></div><div class="tick" data-o="pass" title="nursing_home_providers — NULL-01 null_rate[cms_certification_number_ccn]: cms_certification_number_ccn: 0.0% null/blank"></div><div class="tick" data-o="pass" title="nursing_home_providers — NULL-01 null_rate[provider_name]: provider_name: 0.0% null/blank"></div><div class="tick" data-o="pass" title="nursing_home_providers — NULL-01 null_rate[state]: state: 0.0% null/blank"></div><div class="tick" data-o="pass" title="home_health_agencies — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="home_health_agencies — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="home_health_agencies — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="home_health_agencies — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="home_health_agencies — TYPE-01 numeric_parse: no numeric measure column on this dataset"></div><div class="tick" data-o="pass" title="home_health_agencies — VOL-01 row_count_drift: 12,460 -> 12,460 rows (0.0% change)"></div><div class="tick" data-o="pass" title="home_health_agencies — FRESH-01 upstream_within_cadence: CMS last modified 2026-05-27 (110d ago); expected within 120d"></div><div class="tick" data-o="pass" title="home_health_agencies — FRESH-02 next_update_not_overdue: CMS scheduled next update 2026-10-21 — on schedule"></div><div class="tick" data-o="pass" title="home_health_agencies — NULL-01 null_rate[cms_certification_number_ccn]: cms_certification_number_ccn: 0.0% null/blank"></div><div class="tick" data-o="pass" title="home_health_agencies — NULL-01 null_rate[state]: state: 0.0% null/blank"></div><div class="tick" data-o="pass" title="clinician_national — SCHEMA-01 required_columns_present: all required columns present"></div><div class="tick" data-o="pass" title="clinician_national — KEY-01 primary_key_present: primary key resolvable"></div><div class="tick" data-o="pass" title="clinician_national — KEY-02 primary_key_unique: primary key is unique"></div><div class="tick" data-o="pass" title="clinician_national — PHI-01 no_direct_identifiers: no direct-identifier columns detected"></div><div class="tick" data-o="pass" title="clinician_national — TYPE-01 numeric_parse: no numeric measure column on this dataset"></div><div class="tick" data-o="pass" title="clinician_national — VOL-01 row_count_drift: 50,000 -> 50,000 rows (0.0% change)"></div><div class="tick" data-o="pass" title="clinician_national — FRESH-01 upstream_within_cadence: CMS last modified 2026-08-18 (27d ago); expected within 45d"></div><div class="tick" data-o="pass" title="clinician_national — FRESH-02 next_update_not_overdue: CMS scheduled next update 2026-10-15 — on schedule"></div><div class="tick" data-o="pass" title="clinician_national — NULL-01 null_rate[npi]: npi: 0.0% null/blank"></div><div class="tick" data-o="pass" title="clinician_national — NULL-01 null_rate[state]: state: 0.0% null/blank"></div>
+    </div>
+    <p class="strip-caption">110 controls executed across
+      11 datasets and 904,235 ingested rows.</p>
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--pass)"></i>Passed (110)</span>
+      <span><i class="swatch" style="background:var(--advisory)"></i>Advisory exception (0)</span>
+      <span><i class="swatch" style="background:var(--blocking)"></i>Blocking failure (0)</span>
+    </div>
+  </section>
+
+  <section class="verdict pad">
+    <div class="seal">
+      <span class="g">A</span>
+      <span class="s">100.0</span>
+      <span class="l">Criticality-weighted<br>portfolio score</span>
+    </div>
+    <div class="facts">
+      <div class="fact"><div class="n">11</div><div class="k">Datasets tracked</div></div>
+      <div class="fact"><div class="n">904,235</div><div class="k">Rows ingested</div></div>
+      <div class="fact"><div class="n">110</div><div class="k">Controls executed</div></div>
+      <div class="fact "><div class="n">0</div><div class="k">Blocking failures</div></div>
+      <div class="fact "><div class="n">0</div><div class="k">Advisory exceptions</div></div>
+      <div class="fact"><div class="n">100.0%</div><div class="k">Control pass rate</div></div>
+    </div>
+  </section>
+
+  <section class="pad">
+    <h2>Dataset register</h2>
+    <p class="subhead">One row per governed data product, graded independently. Freshness is
+      measured against the cadence CMS publishes for that file, not against the run date.</p>
+    <table>
+      <thead><tr>
+        <th>Dataset</th><th>Domain</th><th>Criticality</th>
+        <th class="num">Rows</th><th class="num">Cols</th>
+        <th class="num">Age</th><th class="num">Exceptions</th><th class="num">Score</th><th>Grade</th>
+      </tr></thead>
+      <tbody>
+      
+        <tr data-sev="pass">
+          <td><strong>Patient survey (HCAHPS) - Hospital</strong><br><span class="dim">hcahps</span></td>
+          <td><span class="pill">experience</span></td>
+          <td>medium</td>
+          <td class="num">325,720</td>
+          <td class="num">25</td>
+          <td class="num">54d</td>
+          <td class="num">0 / 9</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td><strong>Healthcare Associated Infections - Hospital</strong><br><span class="dim">hai</span></td>
+          <td><span class="pill">quality</span></td>
+          <td>high</td>
+          <td class="num">172,440</td>
+          <td class="num">18</td>
+          <td class="num">54d</td>
+          <td class="num">0 / 10</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td><strong>Timely and Effective Care - Hospital</strong><br><span class="dim">timely_effective_care</span></td>
+          <td><span class="pill">quality</span></td>
+          <td>high</td>
+          <td class="num">138,084</td>
+          <td class="num">19</td>
+          <td class="num">54d</td>
+          <td class="num">0 / 10</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td><strong>Complications and Deaths - Hospital</strong><br><span class="dim">complications_deaths</span></td>
+          <td><span class="pill">quality</span></td>
+          <td>high</td>
+          <td class="num">95,800</td>
+          <td class="num">21</td>
+          <td class="num">54d</td>
+          <td class="num">0 / 10</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td><strong>Unplanned Hospital Visits - Hospital</strong><br><span class="dim">unplanned_visits</span></td>
+          <td><span class="pill">quality</span></td>
+          <td>high</td>
+          <td class="num">67,060</td>
+          <td class="num">23</td>
+          <td class="num">54d</td>
+          <td class="num">0 / 10</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td><strong>National Downloadable File</strong><br><span class="dim">clinician_national</span></td>
+          <td><span class="pill">clinician</span></td>
+          <td>medium</td>
+          <td class="num">50,000</td>
+          <td class="num">34</td>
+          <td class="num">27d</td>
+          <td class="num">0 / 10</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td><strong>Maternal Health - Hospital</strong><br><span class="dim">maternal_health</span></td>
+          <td><span class="pill">quality</span></td>
+          <td>high</td>
+          <td class="num">17,936</td>
+          <td class="num">18</td>
+          <td class="num">54d</td>
+          <td class="num">0 / 9</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td><strong>Provider Information</strong><br><span class="dim">nursing_home_providers</span></td>
+          <td><span class="pill">provider</span></td>
+          <td>high</td>
+          <td class="num">14,690</td>
+          <td class="num">102</td>
+          <td class="num">44d</td>
+          <td class="num">0 / 11</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td><strong>Home Health Care Agencies</strong><br><span class="dim">home_health_agencies</span></td>
+          <td><span class="pill">provider</span></td>
+          <td>medium</td>
+          <td class="num">12,460</td>
+          <td class="num">99</td>
+          <td class="num">110d</td>
+          <td class="num">0 / 10</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td><strong>Hospital General Information</strong><br><span class="dim">hospital_general</span></td>
+          <td><span class="pill">provider</span></td>
+          <td>high</td>
+          <td class="num">5,419</td>
+          <td class="num">41</td>
+          <td class="num">54d</td>
+          <td class="num">0 / 13</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td><strong>Medicare Spending Per Beneficiary - Hospital</strong><br><span class="dim">msbp</span></td>
+          <td><span class="pill">cost</span></td>
+          <td>medium</td>
+          <td class="num">4,626</td>
+          <td class="num">17</td>
+          <td class="num">54d</td>
+          <td class="num">0 / 8</td>
+          <td class="num">100.0</td>
+          <td class="grade A">A</td>
+        </tr>
+      
+      </tbody>
+    </table>
+  </section>
+
+  <section class="pad">
+    <h2>Exceptions</h2>
+    <p class="subhead">Only failed controls appear here. Advisory items are logged and tracked;
+      blocking items stop the affected dataset from being promoted to the warehouse.</p>
+    
+      <div class="clean">No control exceptions. Every dataset passed schema, key, freshness,
+        volume, null-rate, type, and identifier screening.</div>
+    
+  </section>
+
+  <section class="pad">
+    <h2>Lineage and reproducibility</h2>
+    <p class="subhead">Content hashes are taken over the extracted payload before transformation.
+      An unchanged hash across runs proves the upstream file did not move.</p>
+    <table>
+      <thead><tr><th>Dataset</th><th>CMS modified</th><th>Next update</th>
+        <th class="num">Pull time</th><th>Payload SHA-256</th></tr></thead>
+      <tbody>
+      
+        <tr data-sev="pass">
+          <td>hospital_general<br><span class="dim">xubh-q36u</span></td>
+          <td>2026-07-22</td>
+          <td>—</td>
+          <td class="num">2.64s</td>
+          <td class="hash">e3fb55cea02959687b56c4f8f6e31d4c…</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td>timely_effective_care<br><span class="dim">yv7e-xc69</span></td>
+          <td>2026-07-22</td>
+          <td>—</td>
+          <td class="num">23.68s</td>
+          <td class="hash">e76f31332251a72bb8000f4ea7f636e2…</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td>complications_deaths<br><span class="dim">ynj2-r877</span></td>
+          <td>2026-07-22</td>
+          <td>—</td>
+          <td class="num">21.88s</td>
+          <td class="hash">ae853ead9be2da7e5540afa8e7427b3b…</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td>hai<br><span class="dim">77hc-ibv8</span></td>
+          <td>2026-07-22</td>
+          <td>—</td>
+          <td class="num">28.53s</td>
+          <td class="hash">44e0e029a2e1cd70887b054beac83d2c…</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td>unplanned_visits<br><span class="dim">632h-zaca</span></td>
+          <td>2026-07-22</td>
+          <td>—</td>
+          <td class="num">12.27s</td>
+          <td class="hash">bc481a59450f1fd0acab63b5040d73a4…</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td>hcahps<br><span class="dim">dgck-syfz</span></td>
+          <td>2026-07-22</td>
+          <td>—</td>
+          <td class="num">73.46s</td>
+          <td class="hash">0243759b4ff72364ab45ca5f2e7c7132…</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td>maternal_health<br><span class="dim">nrdb-3fcy</span></td>
+          <td>2026-07-22</td>
+          <td>—</td>
+          <td class="num">3.48s</td>
+          <td class="hash">91604575ef779457f895cc6e17f0d693…</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td>msbp<br><span class="dim">rrqw-56er</span></td>
+          <td>2026-07-22</td>
+          <td>—</td>
+          <td class="num">1.77s</td>
+          <td class="hash">469e2731ced244eaf6a517317c2def39…</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td>nursing_home_providers<br><span class="dim">4pq5-n9py</span></td>
+          <td>2026-08-01</td>
+          <td>2026-09-30</td>
+          <td class="num">8.74s</td>
+          <td class="hash">71125fdc7f89562023f3d870a8b44558…</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td>home_health_agencies<br><span class="dim">6jpm-sxkc</span></td>
+          <td>2026-05-27</td>
+          <td>2026-10-21</td>
+          <td class="num">7.2s</td>
+          <td class="hash">e6d7e81693cb74e099709ef7d6f4c732…</td>
+        </tr>
+      
+        <tr data-sev="pass">
+          <td>clinician_national<br><span class="dim">mj5m-pzi6</span></td>
+          <td>2026-08-18</td>
+          <td>2026-10-15</td>
+          <td class="num">13.87s</td>
+          <td class="hash">00fba8fff2135ab3c92c7c95c6b5439a…</td>
+        </tr>
+      
+      </tbody>
+    </table>
+
+    <p class="attest"><strong>Data handling attestation.</strong> All sources are CMS public-use files. No PHI, no beneficiary-level records, and no direct identifiers are ingested, stored, or emitted.
+      Control PHI-01 screens every ingested schema for direct-identifier column patterns and
+      blocks promotion on any match.</p>
+  </section>
+
+  <footer class="pad">
+    Generated 2026-09-14 14:13 · Python 3.12.3 · run dde4a913-9597-4414-8230-658785d9b781<br>
+    Source data: Centers for Medicare &amp; Medicaid Services Provider Data Catalog, public use files.
+  </footer>
+
+</div>
+</body>
+</html>
